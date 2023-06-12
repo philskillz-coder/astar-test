@@ -1,0 +1,3 @@
+﻿  astar test.cpp
+C:\Users\Philskillz\source\repos\astar test\astar test\astar test.cpp(109,11): warning C4101: "curSquare": Unreferenzierte lokale Variable
+  astar test.vcxproj -> C:\Users\Philskillz\source\repos\astar test\x64\Debug\astar test.exe

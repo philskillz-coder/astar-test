@@ -1,3 +1,5 @@
 ﻿  astar test.cpp
-C:\Users\Philskillz\source\repos\astar test\astar test\astar test.cpp(128,63): warning C4267: "Argument": Konvertierung von "size_t" nach "int", Datenverlust möglich
+C:\Users\Philskillz\source\repos\astar test\astar test\astar test.cpp(115,63): warning C4267: "Argument": Konvertierung von "size_t" nach "int", Datenverlust möglich
+C:\Users\Philskillz\source\repos\astar test\astar test\astar test.cpp(124,19): warning C4244: "Initialisierung": Konvertierung von "int" in "float", möglicher Datenverlust
+C:\Users\Philskillz\source\repos\astar test\astar test\astar test.cpp(125,19): warning C4244: "Initialisierung": Konvertierung von "int" in "float", möglicher Datenverlust
   astar test.vcxproj -> C:\Users\Philskillz\source\repos\astar test\x64\Debug\astar test.exe

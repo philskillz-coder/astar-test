@@ -1,7 +1,8 @@
-#include "astar.h"
+#include <Windows.h>
 #include <queue>
 #include <unordered_set>
 #include <algorithm>
+#include "astar.h"
 
 struct Node {
     Point point;
@@ -21,11 +22,12 @@ struct NodeCompare {
 bool AStar::isValid(const std::vector<std::vector<int>>& grid, int x, int y) {
     int rows = grid.size();
     int cols = grid[0].size();
+    // != 1: is not wall
     return (x >= 0 && x < rows && y >= 0 && y < cols && grid[x][y] != 1);
 }
 
-int AStar::calculateHeuristic(const Point& current, const Point& goal) {
-    return abs(current.x - goal.x) + abs(current.y - goal.y);
+int AStar::calculateHeuristic(const Point& current, const Point& finish) {
+    return abs(current.x - finish.x) + abs(current.y - finish.y);
 }
 
 std::vector<Point> AStar::getNeighbors(const std::vector<std::vector<int>>& grid, const Point& node) {
@@ -35,7 +37,7 @@ std::vector<Point> AStar::getNeighbors(const std::vector<std::vector<int>>& grid
 
     std::vector<Point> offsets = { {0, 1}, {0, -1}, {1, 0}, {-1, 0} };  // right, left, down, up
 
-    for (const auto& offset : offsets) {
+    for (const Point& offset : offsets) {
         int newX = node.x + offset.x;
         int newY = node.y + offset.y;
 
@@ -62,7 +64,7 @@ std::vector<Point> AStar::reconstructPath(const std::unordered_map<Point, Point>
     return path;
 }
 
-std::vector<Point> AStar::findPath(const std::vector<std::vector<int>>& grid, const Point& start, const Point& goal) {
+std::vector<Point> AStar::findPath(const std::vector<std::vector<int>>& grid, const Point& start, const Point& finish) {
     int rows = grid.size();
     int cols = grid[0].size();
 
@@ -70,26 +72,26 @@ std::vector<Point> AStar::findPath(const std::vector<std::vector<int>>& grid, co
     std::unordered_set<Point> closedSet;
     std::unordered_map<Point, Point> cameFrom;
 
-    openSet.push(Node(start, 0, calculateHeuristic(start, goal)));
+    openSet.push(Node(start, 0, calculateHeuristic(start, finish)));
 
     while (!openSet.empty()) {
         Node current = openSet.top();
         openSet.pop();
 
-        if (current.point.x == goal.x && current.point.y == goal.y) {
+        if (current.point.x == finish.x && current.point.y == finish.y) {
             return reconstructPath(cameFrom, current.point);
         }
 
         closedSet.insert(current.point);
 
         std::vector<Point> neighbors = getNeighbors(grid, current.point);
-        for (const auto& neighbor : neighbors) {
+        for (const Point& neighbor : neighbors) {
             if (closedSet.find(neighbor) != closedSet.end()) {
                 continue;
             }
 
             int neighborG = current.g + 1;  // assuming each step has a cost of 1
-            int neighborH = calculateHeuristic(neighbor, goal);
+            int neighborH = calculateHeuristic(neighbor, finish);
             int neighborF = neighborG + neighborH;
 
             Node neighborNode(neighbor, neighborG, neighborH);

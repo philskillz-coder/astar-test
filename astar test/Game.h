@@ -3,10 +3,11 @@
 
 #include <Windows.h>
 #include <vector>
+#include "AStar.h"
 
 class Mouse {
 public:
-	POINT pos;
+	Point pos;
 	bool rButtonDown;
 	bool lButtonDown;
 
@@ -15,18 +16,23 @@ public:
 
 
 class Grid {
-public:
+private:
     std::vector<std::vector<int>> grid;
+    AStar path_finder;
+
+public:
     int size;
     int rows;
     int cols;
     int spacing;
-    POINT start;
-    POINT finish;
+    bool changed = true;
+    Point start;
+    Point finish;
 
     Grid(int nRows, int nCols, int sqSize, int sqSpacing);
     void setCell(int row, int col, int value);
     int getCell(int row, int col) const;
+    std::vector<Point> findPath();
 };
 
 class Game

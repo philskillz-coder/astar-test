@@ -4,6 +4,7 @@
 #include <chrono>
 #include "Game.h"
 #include "AStar.h"
+#include "args.hxx"
 
 constexpr int TARGET_FPS = 60;
 constexpr double DESIRED_FRAME_TIME = 1000.0 / TARGET_FPS;
@@ -13,25 +14,19 @@ constexpr int GAME_WALL = 1;
 constexpr int GAME_START = 2;
 constexpr int GAME_FINISH = 3;
 
-constexpr int gridCols = 20;
-constexpr int gridRows = 20;
-constexpr int squareSize = 25;
-constexpr int squareSpacing = 2;
-
-enum Types : int {
-    AIR = 0,
-    WALL = 1
-};
-
 LARGE_INTEGER lastFrameTime;
 Game game = Game(Grid(0, 0, 0, 0));
-bool changed = true;
 
 COLORREF airColor = RGB(67, 65, 65); // gray
 COLORREF wallColor = RGB(255, 0, 0); 
 COLORREF startColor = RGB(44, 27, 107); // dark blue
 COLORREF finishColor = RGB(108, 71, 247); // light blue
 COLORREF wayColor = RGB(71, 247, 75); // lime green
+
+bool ArePointsNotEqual(Point a, Point b)
+{
+    return (a.x != b.x || a.y != b.y);
+}
 
 double GetElapsedMilliseconds()
 {
@@ -98,28 +93,20 @@ void DrawGrid(HDC hdc)
 }
 
 void DrawWay(HDC hdc) {
-    AStar star;
-    Point start;
-    Point finish;
-
-    start.x = game.grid.start.x;
-    start.y = game.grid.start.y;
-
-    finish.x = game.grid.finish.x;
-    finish.y = game.grid.finish.y;
-
-    std::vector<Point> path = star.findPath(game.grid.grid, start, finish);
+    std::vector<Point> path = game.grid.findPath();
     for (Point p : path) {
         if (
-            (p.x != game.grid.start.x || p.y != game.grid.start.y)
-            && (p.x != game.grid.finish.x || p.y != game.grid.finish.y)
+            ArePointsNotEqual(p, game.grid.start)
+            && ArePointsNotEqual(p, game.grid.finish)
             ) 
         {
+            // should be p.x * (...) and p.y * (...) but idk something is switched and it works that way
             int x1 = p.y * (game.grid.size + game.grid.spacing);
             int y1 = p.x * (game.grid.size + game.grid.spacing);
 
             int x2 = x1 + game.grid.size;
             int y2 = y1 + game.grid.size;
+
             DrawRectangle(hdc, x1, y1, x2, y2, wayColor);
         }
     }
@@ -128,13 +115,21 @@ void DrawWay(HDC hdc) {
     TextOut(hdc, 10, 10, posString.c_str(), posString.length());
 }
 
-bool GetMouseSquare(POINT* point)
+bool GetMouseSquare(Point* point)
 {
-    POINT square;
+    Point square;
     square.x = game.mouse.pos.x / (game.grid.size + game.grid.spacing);
     square.y = game.mouse.pos.y / (game.grid.size + game.grid.spacing);
 
-    if (0 <= square.x && square.x < game.grid.cols && 0 <= square.y && square.y < game.grid.rows ) {
+    float offsetX = game.mouse.pos.x % (game.grid.size + game.grid.spacing);
+    float offsetY = game.mouse.pos.y % (game.grid.size + game.grid.spacing);
+
+    if (offsetX >= game.grid.size || offsetY >= game.grid.size) {
+        // Mouse is over the spacing, not a valid square
+        return false;
+    }
+
+    if (0 <= square.x && square.x < game.grid.cols && 0 <= square.y && square.y < game.grid.rows) {
         *point = square;
         return true;
     }
@@ -142,14 +137,10 @@ bool GetMouseSquare(POINT* point)
     return false;
 }
 
-bool ArePointsNotEqual(POINT a, POINT b)
-{
-    return (a.x != b.x || a.y != b.y);
-}
 
 void GameUpdate()
 {
-    POINT curSquare;
+    Point curSquare;
     if (
         game.mouse.lButtonDown
         && GetMouseSquare(&curSquare)
@@ -158,7 +149,7 @@ void GameUpdate()
         && ArePointsNotEqual(curSquare, game.grid.finish)
         ) {
         game.grid.setCell(curSquare.y, curSquare.x, GAME_WALL);
-        changed = true;
+        game.grid.changed = true;
     }
 
     if (
@@ -169,7 +160,7 @@ void GameUpdate()
         && ArePointsNotEqual(curSquare, game.grid.finish)
         ) {
         game.grid.setCell(curSquare.y, curSquare.x, GAME_AIR);
-        changed = true;
+        game.grid.changed = true;
     }
 }
 
@@ -178,11 +169,12 @@ void GameRender(HWND hwnd)
     PAINTSTRUCT ps;
     HDC hdc = BeginPaint(hwnd, &ps);
 
-    if (changed) {
+
+    if (game.grid.changed) {
         DrawGrid(hdc);
         DrawWay(hdc);
     }
-    changed = false;
+    game.grid.changed = false;
 
     /*std::wstring posString = L"Mouse position: (" + std::to_wstring(game.mouse.pos.x) + L", " + std::to_wstring(game.mouse.pos.y) + L")";
     TextOut(hdc, 10, 10, posString.c_str(), posString.length());*/
@@ -226,8 +218,12 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     } */
 
     case WM_MOUSEMOVE: {
-        GetCursorPos(&game.mouse.pos);
-        ScreenToClient(hwnd, &game.mouse.pos);
+        POINT mp;
+        GetCursorPos(&mp);
+        ScreenToClient(hwnd, &mp);
+
+        game.mouse.pos.x = mp.x;
+        game.mouse.pos.y = mp.y;
 
         return 0;
     }
@@ -325,9 +321,43 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 }
 
 
-int main()
+int main(int argc, char* argv[])
 {
-    Grid grid = Grid(gridRows, gridCols, squareSize, squareSpacing);
+    args::ArgumentParser parser("This program demonstrates argument parsing for rows, columns, size, and spacing.");
+
+    args::HelpFlag help(parser, "help", "Display this help menu", { 'h', "help" });
+    args::ValueFlag<int> rows(parser, "rows", "Number of rows (default: 10)", { 'r', "rows" });
+    args::ValueFlag<int> cols(parser, "cols", "Number of columns (default: 10)", { 'c', "cols" });
+    args::ValueFlag<int> size(parser, "size", "Size of each element (default: 50)", { 's', "size" });
+    args::ValueFlag<int> spacing(parser, "spacing", "Spacing between elements (default: 2)", { 'p', "spacing" });
+
+    try {
+        parser.ParseCLI(argc, argv);
+    }
+    catch (args::Help&) {
+        std::cout << parser;
+        return 0;
+    }
+    catch (args::ParseError& e) {
+        std::cerr << e.what() << std::endl;
+        std::cerr << parser;
+        return 1;
+    }
+
+    int numRows = rows ? *rows : 10;
+    std::cout << "Number of rows: " << numRows << std::endl;
+
+    int numCols = cols ? *cols : 10;
+    std::cout << "Number of columns: " << numCols << std::endl;
+
+    int elementSize = size ? *size : 50;
+    std::cout << "Size of each element: " << elementSize << std::endl;
+
+    int elementSpacing = spacing ? *spacing : 2;
+    std::cout << "Spacing between elements: " << elementSpacing << std::endl;
+
+
+    Grid grid = Grid(numRows, numCols, elementSize, elementSpacing);
     game = Game(grid);
 
     for (int row = 0; row < game.grid.rows; ++row)

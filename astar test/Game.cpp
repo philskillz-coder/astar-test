@@ -41,6 +41,10 @@ int Grid::getCell(int row, int col) const {
     }
 }
 
+std::vector<Point> Grid::findPath() {
+    return path_finder.findPath(grid, start, finish);
+}
+
 
 Game::Game(Grid g) : grid(g) {
 

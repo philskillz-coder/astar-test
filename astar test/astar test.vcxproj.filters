@@ -32,5 +32,8 @@
     <ClInclude Include="AStar.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="args.hxx">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

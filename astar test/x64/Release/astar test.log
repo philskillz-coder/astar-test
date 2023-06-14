@@ -1,18 +1,1 @@
-﻿  AStar.cpp
-C:\Users\Philskillz\source\repos\astar test\astar test\AStar.cpp(23,27): warning C4267: "Initialisierung": Konvertierung von "size_t" nach "int", Datenverlust möglich
-C:\Users\Philskillz\source\repos\astar test\astar test\AStar.cpp(24,30): warning C4267: "Initialisierung": Konvertierung von "size_t" nach "int", Datenverlust möglich
-C:\Users\Philskillz\source\repos\astar test\astar test\AStar.cpp(35,27): warning C4267: "Initialisierung": Konvertierung von "size_t" nach "int", Datenverlust möglich
-C:\Users\Philskillz\source\repos\astar test\astar test\AStar.cpp(36,30): warning C4267: "Initialisierung": Konvertierung von "size_t" nach "int", Datenverlust möglich
-C:\Users\Philskillz\source\repos\astar test\astar test\AStar.cpp(68,27): warning C4267: "Initialisierung": Konvertierung von "size_t" nach "int", Datenverlust möglich
-C:\Users\Philskillz\source\repos\astar test\astar test\AStar.cpp(69,30): warning C4267: "Initialisierung": Konvertierung von "size_t" nach "int", Datenverlust möglich
-  Game.cpp
-  astar test.cpp
-C:\Users\Philskillz\source\repos\astar test\astar test\astar test.cpp(115,63): warning C4267: "Argument": Konvertierung von "size_t" nach "int", Datenverlust möglich
-C:\Users\Philskillz\source\repos\astar test\astar test\astar test.cpp(124,19): warning C4244: "Initialisierung": Konvertierung von "int" in "float", möglicher Datenverlust
-C:\Users\Philskillz\source\repos\astar test\astar test\astar test.cpp(125,19): warning C4244: "Initialisierung": Konvertierung von "int" in "float", möglicher Datenverlust
-  Code wird generiert.
-  1788 of 2308 functions (77.5%) were compiled, the rest were copied from previous compilation.
-    1599 functions were new in current compilation
-    80 functions had inline decision re-evaluated but remain unchanged
-  Codegenerierung ist abgeschlossen.
-  astar test.vcxproj -> C:\Users\Philskillz\source\repos\astar test\x64\Release\astar test.exe
+﻿LINK : fatal error LNK1104: Datei "C:\Users\Philskillz\source\repos\astar test\x64\Release\astar test.exe" kann nicht geöffnet werden.

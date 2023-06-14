@@ -13,6 +13,7 @@ constexpr int GAME_AIR = 0;
 constexpr int GAME_WALL = 1;
 constexpr int GAME_START = 2;
 constexpr int GAME_FINISH = 3;
+constexpr int GAME_PATH = 4;
 
 LARGE_INTEGER lastFrameTime;
 Game game = Game(Grid(0, 0, 0, 0));
@@ -21,7 +22,7 @@ COLORREF airColor = RGB(67, 65, 65); // gray
 COLORREF wallColor = RGB(255, 0, 0); 
 COLORREF startColor = RGB(44, 27, 107); // dark blue
 COLORREF finishColor = RGB(108, 71, 247); // light blue
-COLORREF wayColor = RGB(71, 247, 75); // lime green
+COLORREF pathColor = RGB(71, 247, 75); // lime green
 
 bool ArePointsNotEqual(Point a, Point b)
 {
@@ -53,7 +54,6 @@ void DrawRectangle(HDC hdc, int x1, int y1, int x2, int y2, COLORREF color)
     SelectObject(hdc, hOldBrush);
     DeleteObject(hBrush);
 }
-
 
 void DrawGrid(HDC hdc)
 {
@@ -89,7 +89,6 @@ void DrawGrid(HDC hdc)
             }
         }
     }
-
 }
 
 void DrawWay(HDC hdc) {
@@ -107,7 +106,7 @@ void DrawWay(HDC hdc) {
             int x2 = x1 + game.grid.size;
             int y2 = y1 + game.grid.size;
 
-            DrawRectangle(hdc, x1, y1, x2, y2, wayColor);
+            DrawRectangle(hdc, x1, y1, x2, y2, pathColor);
         }
     }
 
@@ -166,6 +165,7 @@ void GameUpdate()
 
 void GameRender(HWND hwnd)
 {
+    //TODO: only render updated regions
     PAINTSTRUCT ps;
     HDC hdc = BeginPaint(hwnd, &ps);
 
@@ -200,22 +200,104 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     case WM_SETCURSOR: {
         if (LOWORD(lParam) == HTCLIENT)
         {
+            // Set the cursor to the normal arrow cursor
             SetCursor(LoadCursor(NULL, IDC_ARROW));
             return TRUE;
         }
+        break;
+    }
+
+    case WM_NCHITTEST:
+    {
+        POINT cursorPos;
+        cursorPos.x = LOWORD(lParam);
+        cursorPos.y = HIWORD(lParam);
+
+        RECT windowRect;
+        GetWindowRect(hwnd, &windowRect);
+
+        // Check if the cursor is on the window's edge within the non-client area
+        int borderWidth = GetSystemMetrics(SM_CXSIZEFRAME);
+        int titleBarHeight = GetSystemMetrics(SM_CYCAPTION);
+        bool onLeftEdge = cursorPos.x >= windowRect.left && cursorPos.x < windowRect.left + borderWidth;
+        bool onRightEdge = cursorPos.x < windowRect.right&& cursorPos.x >= windowRect.right - borderWidth;
+        bool onTopEdge = cursorPos.y >= windowRect.top && cursorPos.y < windowRect.top + titleBarHeight;
+        bool onBottomEdge = cursorPos.y < windowRect.bottom&& cursorPos.y >= windowRect.bottom - borderWidth;
+
+        if (onLeftEdge && onTopEdge)
+        {
+            // Top-left corner
+            SetCursor(LoadCursor(NULL, IDC_SIZENWSE));
+            return HTTOPLEFT;
+        }
+        else if (onRightEdge && onTopEdge)
+        {
+            // Top-right corner
+            SetCursor(LoadCursor(NULL, IDC_SIZENESW));
+            return HTTOPRIGHT;
+        }
+        else if (onLeftEdge && onBottomEdge)
+        {
+            // Bottom-left corner
+            SetCursor(LoadCursor(NULL, IDC_SIZENESW));
+            return HTBOTTOMLEFT;
+        }
+        else if (onRightEdge && onBottomEdge)
+        {
+            // Bottom-right corner
+            SetCursor(LoadCursor(NULL, IDC_SIZENWSE));
+            return HTBOTTOMRIGHT;
+        }
+        else if (onLeftEdge)
+        {
+            // Left edge
+            SetCursor(LoadCursor(NULL, IDC_SIZEWE));
+            return HTLEFT;
+        }
+        else if (onRightEdge)
+        {
+            // Right edge
+            SetCursor(LoadCursor(NULL, IDC_SIZEWE));
+            return HTRIGHT;
+        }
+        else if (onTopEdge)
+        {
+            // Top edge
+            SetCursor(LoadCursor(NULL, IDC_SIZENS));
+            return HTTOP;
+        }
+        else if (onBottomEdge)
+        {
+            // Bottom edge
+            SetCursor(LoadCursor(NULL, IDC_SIZENS));
+            return HTBOTTOM;
+        }
+        else
+        {
+            // Cursor is within the client area, set to default arrow cursor
+            SetCursor(LoadCursor(NULL, IDC_ARROW));
+            return HTCLIENT;
+        }
+
+        break;
     }
     
-    // replaced with GetAsyncKeyState in WinMain
-    /* case WM_LBUTTONDOWN: {
-        std::cout << "lbtn down" << std::endl;
-        game.mouse.lButtonDown = true;
-    }*/   
+    case WM_SIZE: {
+        // on resize paint everything white
+        int width = LOWORD(lParam);
+        int height = HIWORD(lParam);
 
-    // replaced with GetAsyncKeyState in WinMain
-    /* case WM_LBUTTONUP: {
-        std::cout << "lbtn up" << std::endl;
-        game.mouse.lButtonDown = false;
-    } */
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(hwnd, &ps);
+
+        DrawRectangle(hdc, 0, 0, width, height, RGB(255, 255, 255));
+        game.grid.changed = true;
+
+        EndPaint(hwnd, &ps);
+        ReleaseDC(hwnd, hdc);
+
+        return 0;
+    }
 
     case WM_MOUSEMOVE: {
         POINT mp;
@@ -226,6 +308,28 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         game.mouse.pos.y = mp.y;
 
         return 0;
+    }
+
+    case WM_KEYDOWN: {
+        if (wParam == 'C')
+        {
+            // Check if the window is in the foreground
+            HWND foregroundWindow = GetForegroundWindow();
+            if (foregroundWindow == hwnd)
+            {
+                for (int row = 0; row < game.grid.rows; ++row)
+                {
+                    for (int col = 0; col < game.grid.cols; ++col)
+                    {
+                        if (game.grid.getCell(row, col) == GAME_WALL) {
+                            game.grid.setCell(row, col, GAME_AIR);
+                        }
+                    }
+                }
+                game.grid.changed = true;
+            }
+        }
+        break;
     }
 
     case WM_PAINT: {
